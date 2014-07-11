@@ -40,6 +40,8 @@ class Dotenv
                 // Remove whitespaces around key & value
                 list($key, $val) = array_map('trim', explode('=', $line, 2));
 
+                $val = trim($val, '> ,');
+
                 // Don't overwrite existing environment variables.
                 // Ruby's dotenv does this with `ENV[key] ||= value`.
                 if (getenv($key) === false) {
