@@ -1,6 +1,5 @@
 {
     "name": "vlucas/phpdotenv",
-    "version": "1.0.6",
     "type": "library",
     "description": "Loads environment variables from `.env` to `getenv()`, `$_ENV` and `$_SERVER` automagically.",
     "keywords": ["env", "dotenv", "environment"],
@@ -17,11 +16,16 @@
         "php": ">=5.3.2"
     },
     "require-dev": {
-        "phpunit/phpunit": "*"
+        "phpunit/phpunit": "~4.0"
     },
     "autoload": {
         "psr-0": {
             "Dotenv": "src/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
         }
     }
 }
