@@ -46,25 +46,7 @@ class Dotenv
             }
             // Only use non-empty lines that look like setters
             if (strpos($line, '=') !== false) {
-<<<<<<< HEAD
-                // Strip quotes because putenv can't handle them. Also remove 'export' if present
-                $line = str_replace(array('export ', '\'', '"'), '', $line);
-                // Remove whitespaces around key & value
-                list($key, $val) = array_map('trim', explode('=', $line, 2));
-
-                $val = trim($val, '> ,');
-
-                // Don't overwrite existing environment variables.
-                // Ruby's dotenv does this with `ENV[key] ||= value`.
-                if (getenv($key) === false) {
-                    putenv("$key=$val");
-                    // Set PHP superglobals
-                    $_ENV[$key] = $val;
-                    $_SERVER[$key] = $val;
-                }
-=======
                 static::setEnvironmentVariable($line);
->>>>>>> 732d2adb7d916c9593b9d58c3b0d9ebefead07aa
             }
         }
     }
@@ -179,6 +161,7 @@ class Dotenv
     protected static function sanitiseVariableValue($value)
     {
         $value = trim($value);
+        $value = trim($value, '> ,');
         if (!$value) return '';
         if (strpbrk($value[0], '"\'') !== false) { // value starts with a quote
             $quote = $value[0];
