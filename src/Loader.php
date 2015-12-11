@@ -205,6 +205,8 @@ class Loader
             return array($name, $value);
         }
 
+        $value = trim($value, '> ,');
+
         if ($this->beginsWithAQuote($value)) { // value starts with a quote
             $quote = $value[0];
             $regexPattern = sprintf(
@@ -227,7 +229,7 @@ class Loader
             $value = str_replace('\\\\', '\\', $value);
         } else {
             $parts = explode(' #', $value, 2);
-            $value = trim(trim($parts[0]), '> ,');
+            $value = trim($parts[0]);
 
             // Unquoted values cannot contain whitespace
             if (preg_match('/\s+/', $value) > 0) {
