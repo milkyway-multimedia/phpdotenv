@@ -1,160 +1,62 @@
 <?php
+
+namespace Dotenv;
+
 /**
- * Dotenv
+ * Dotenv.
  *
- * Loads a `.env` file in the given directory and sets the environment vars
+ * Loads a `.env` file in the given directory and sets the environment vars.
  */
 class Dotenv
 {
     /**
-     * If true, then environment variables will not be overwritten
-     * @var bool
+     * The file path.
+     *
+     * @var string
      */
-    protected static $immutable = true;
+    protected $filePath;
 
     /**
-     * Load `.env` file in given directory
+     * The loader instance.
+     *
+     * @var \Dotenv\Loader|null
      */
-    public static function load($path, $file = '.env')
+    protected $loader;
+
+    public function __construct($path, $file = '.env')
     {
-        if (!is_string($file)) {
-            $file = '.env';
-        }
-
-        $filePath = rtrim($path, '/') . '/' . $file;
-        if (!is_readable($filePath) || !is_file($filePath)) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    "Dotenv: Environment file %s not found or not readable. " .
-                    "Create file with your environment settings at %s",
-                    $file,
-                    $filePath
-                )
-            );
-        }
-
-        // Read file into an array of lines with auto-detected line endings
-        $autodetect = ini_get('auto_detect_line_endings');
-        ini_set('auto_detect_line_endings', '1');
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        ini_set('auto_detect_line_endings', $autodetect);
-
-        foreach ($lines as $line) {
-            // Disregard comments
-            if (strpos(trim($line), '#') === 0) {
-                continue;
-            }
-            // Only use non-empty lines that look like setters
-            if (strpos($line, '=') !== false) {
-                static::setEnvironmentVariable($line);
-            }
-        }
+        $this->filePath = $this->getFilePath($path, $file);
+        $this->loader = new Loader($this->filePath, $immutable = true);
     }
 
     /**
-     * Set a variable using:
-     * - putenv
-     * - $_ENV
-     * - $_SERVER
+     * Load `.env` file in given directory.
      *
-     * The environment variable value is stripped of single and double quotes.
-     *
-     * @param $name
-     * @param null $value
-     */
-    public static function setEnvironmentVariable($name, $value = null)
-    {
-        list($name, $value) = static::normaliseEnvironmentVariable($name, $value);
-
-        // Don't overwrite existing environment variables if we're immutable
-        // Ruby's dotenv does this with `ENV[key] ||= value`.
-        if (static::$immutable === true && !is_null(static::findEnvironmentVariable($name))) {
-            return;
-        }
-
-        putenv("$name=$value");
-        $_ENV[$name] = $value;
-        $_SERVER[$name] = $value;
-    }
-
-    /**
-     * Require specified ENV vars to be present, or throw Exception.
-     * You can also pass through an set of allowed values for the environment variable.
-     *
-     * @throws \RuntimeException
-     * @param  mixed             $environmentVariables the name of the environment variable or an array of names
-     * @param  string[]          $allowedValues
-     * @return true              (or throws exception on error)
-     */
-    public static function required($environmentVariables, array $allowedValues = array())
-    {
-        $environmentVariables = (array) $environmentVariables;
-        $missingEnvironmentVariables = array();
-
-        foreach ($environmentVariables as $environmentVariable) {
-            $value = static::findEnvironmentVariable($environmentVariable);
-            if (is_null($value)) {
-                $missingEnvironmentVariables[] = $environmentVariable;
-            } elseif ($allowedValues) {
-                if (!in_array($value, $allowedValues)) {
-                    // may differentiate in the future, but for now this does the job
-                    $missingEnvironmentVariables[] = $environmentVariable;
-                }
-            }
-        }
-
-        if ($missingEnvironmentVariables) {
-            throw new \RuntimeException(
-                sprintf(
-                    "Required environment variable missing, or value not allowed: '%s'",
-                    implode("', '", $missingEnvironmentVariables)
-                )
-            );
-        }
-
-        return true;
-    }
-
-    /**
-     * Takes value as passed in by developer and:
-     * - ensures we're dealing with a separate name and value, breaking apart the name string if needed
-     * - cleaning the value of quotes
-     * - cleaning the name of quotes
-     * - resolving nested variables
-     *
-     * @param $name
-     * @param $value
      * @return array
      */
-    protected static function normaliseEnvironmentVariable($name, $value)
+    public function load()
     {
-        list($name, $value) = static::splitCompoundStringIntoParts($name, $value);
-        $name  = static::sanitiseVariableName($name);
-        $value = static::sanitiseVariableValue($value);
-        $value = static::resolveNestedVariables($value);
+        $this->loader = new Loader($this->filePath, $immutable = true);
 
-        return array($name, $value);
+        return $this->loader->load();
     }
 
     /**
-     * If the $name contains an = sign, then we split it into 2 parts, a name & value
+     * Load `.env` file in given directory.
      *
-     * @param $name
-     * @param $value
      * @return array
      */
-    protected static function splitCompoundStringIntoParts($name, $value)
+    public function overload()
     {
-        if (strpos($name, '=') !== false) {
-            list($name, $value) = array_map('trim', explode('=', $name, 2));
-        }
+        $this->loader = new Loader($this->filePath, $immutable = false);
 
-        return array($name, $value);
+        return $this->loader->load();
     }
 
     /**
-     * Strips quotes from the environment variable value.
+     * Returns the full path to the file.
      *
+<<<<<<< HEAD
      * @param $value
      * @return string
      */
@@ -201,71 +103,33 @@ class Dotenv
     /**
      * Look for {$varname} patterns in the variable value and replace with an existing
      * environment variable.
+=======
+     * @param string $path
+     * @param string $file
+>>>>>>> 101d5d7498bcd827e73c20da2f687e79d2d139f9
      *
-     * @param $value
-     * @return mixed
-     */
-    protected static function resolveNestedVariables($value)
-    {
-        if (strpos($value, '$') !== false) {
-            $value = preg_replace_callback(
-                '/{\$([a-zA-Z0-9_]+)}/',
-                function ($matchedPatterns) {
-                    $nestedVariable = Dotenv::findEnvironmentVariable($matchedPatterns[1]);
-                    if (is_null($nestedVariable)) {
-                        return $matchedPatterns[0];
-                    } else {
-                        return  $nestedVariable;
-                    }
-                },
-                $value
-            );
-        }
-
-        return $value;
-    }
-
-    /**
-     * Search the different places for environment variables and return first value found.
-     * @param $name
      * @return string
      */
-    public static function findEnvironmentVariable($name)
+    protected function getFilePath($path, $file)
     {
-        switch (true) {
-            case array_key_exists($name, $_ENV):
-                return $_ENV[$name];
-            case array_key_exists($name, $_SERVER):
-                return $_SERVER[$name];
-            default:
-                $value = getenv($name);
-
-                return $value === false ? null : $value; // switch getenv default to null
+        if (!is_string($file)) {
+            $file = '.env';
         }
+
+        $filePath = rtrim($path, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$file;
+
+        return $filePath;
     }
 
     /**
-     * Check Dotenv immutable status. Returns true if immutable, false if mutable.
-     * @return bool
+     * Required ensures that the specified variables exist, and returns a new Validator object.
+     *
+     * @param string|string[] $variable
+     *
+     * @return \Dotenv\Validator
      */
-    public static function isImmutable()
+    public function required($variable)
     {
-        return static::$immutable;
-    }
-
-    /**
-     * Make Dotenv immutable. This means that once set, an environment variable cannot be overridden.
-     */
-    public static function makeImmutable()
-    {
-        static::$immutable = true;
-    }
-
-    /**
-     * Make Dotenv mutable. Environment variables will act as, well, variables.
-     */
-    public static function makeMutable()
-    {
-        static::$immutable = false;
+        return new Validator((array) $variable, $this->loader);
     }
 }
