@@ -227,7 +227,7 @@ class Loader
             $value = str_replace('\\\\', '\\', $value);
         } else {
             $parts = explode(' #', $value, 2);
-            $value = trim($parts[0]);
+            $value = trim(trim($parts[0], '> ,');
 
             // Unquoted values cannot contain whitespace
             if (preg_match('/\s+/', $value) > 0) {
